@@ -2,19 +2,19 @@ import React, { useMemo } from "react";
 import styles from "./task-list-table.module.css";
 import { Task } from "../../types/public-types";
 
-const localeDateStringCache = {};
-const toLocaleDateStringFactory = (locale: string) => (
-  date: Date,
-  dateTimeOptions: Intl.DateTimeFormatOptions
-) => {
-  const key = date.toString();
-  let lds = localeDateStringCache[key];
-  if (!lds) {
-    lds = date.toLocaleDateString(locale, dateTimeOptions);
-    localeDateStringCache[key] = lds;
-  }
-  return lds;
-};
+const localeDateStringCache = new Map<string, string>();
+const toLocaleDateStringFactory =
+  (locale: string) =>
+  (date: Date, dateTimeOptions: Intl.DateTimeFormatOptions) => {
+    const key = date.toString();
+    let lds = localeDateStringCache.get(key);
+    if (!lds) {
+      lds = date.toLocaleDateString(locale, dateTimeOptions);
+      localeDateStringCache.set(key, lds);
+    }
+    return lds;
+  };
+
 const dateTimeOptions: Intl.DateTimeFormatOptions = {
   weekday: "short",
   year: "numeric",
@@ -41,9 +41,10 @@ export const TaskListTableDefault: React.FC<{
   locale,
   onExpanderClick,
 }) => {
-  const toLocaleDateString = useMemo(() => toLocaleDateStringFactory(locale), [
-    locale,
-  ]);
+  const toLocaleDateString = useMemo(
+    () => toLocaleDateStringFactory(locale),
+    [locale]
+  );
 
   return (
     <div

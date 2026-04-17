@@ -1,6 +1,4 @@
 import { Task, ViewMode } from "../types/public-types";
-import DateTimeFormatOptions = Intl.DateTimeFormatOptions;
-import DateTimeFormat = Intl.DateTimeFormat;
 
 type DateHelperScales =
   | "year"
@@ -11,20 +9,19 @@ type DateHelperScales =
   | "second"
   | "millisecond";
 
-const intlDTCache = {};
+const intlDTCache = new Map<string, Intl.DateTimeFormat>();
 export const getCachedDateTimeFormat = (
   locString: string | string[],
-  opts: DateTimeFormatOptions = {}
-): DateTimeFormat => {
+  opts: Intl.DateTimeFormatOptions = {}
+): Intl.DateTimeFormat => {
   const key = JSON.stringify([locString, opts]);
-  let dtf = intlDTCache[key];
+  let dtf = intlDTCache.get(key);
   if (!dtf) {
     dtf = new Intl.DateTimeFormat(locString, opts);
-    intlDTCache[key] = dtf;
+    intlDTCache.set(key, dtf);
   }
   return dtf;
 };
-
 
 export const addToDate = (
   date: Date,
@@ -70,7 +67,11 @@ export const startOfDate = (date: Date, scale: DateHelperScales) => {
   return newDate;
 };
 
-export const ganttDateRange = (tasks: Task[], viewMode: ViewMode) => {
+export const ganttDateRange = (
+  tasks: Task[],
+  viewMode: ViewMode,
+  preStepsCount: number
+) => {
   let newStartDate: Date = tasks[0].start;
   let newEndDate: Date = tasks[0].start;
   for (const task of tasks) {
@@ -82,6 +83,12 @@ export const ganttDateRange = (tasks: Task[], viewMode: ViewMode) => {
     }
   }
   switch (viewMode) {
+    case ViewMode.Year:
+      newStartDate = addToDate(newStartDate, -1, "year");
+      newStartDate = startOfDate(newStartDate, "year");
+      newEndDate = addToDate(newEndDate, 1, "year");
+      newEndDate = startOfDate(newEndDate, "year");
+      break;
     case ViewMode.Month:
       newStartDate = addToDate(newStartDate, -1, "month");
       newStartDate = startOfDate(newStartDate, "month");
@@ -90,27 +97,37 @@ export const ganttDateRange = (tasks: Task[], viewMode: ViewMode) => {
       break;
     case ViewMode.Week:
       newStartDate = startOfDate(newStartDate, "day");
+      newStartDate = addToDate(
+        getMonday(newStartDate),
+        -7 * preStepsCount,
+        "day"
+      );
       newEndDate = startOfDate(newEndDate, "day");
-      newStartDate = addToDate(getMonday(newStartDate), -7, "day");
       newEndDate = addToDate(newEndDate, 1.5, "month");
       break;
     case ViewMode.Day:
       newStartDate = startOfDate(newStartDate, "day");
+      newStartDate = addToDate(newStartDate, -1 * preStepsCount, "day");
       newEndDate = startOfDate(newEndDate, "day");
-      newStartDate = addToDate(newStartDate, -1, "day");
       newEndDate = addToDate(newEndDate, 19, "day");
       break;
     case ViewMode.QuarterDay:
       newStartDate = startOfDate(newStartDate, "day");
+      newStartDate = addToDate(newStartDate, -1 * preStepsCount, "day");
       newEndDate = startOfDate(newEndDate, "day");
-      newStartDate = addToDate(newStartDate, -1, "day");
       newEndDate = addToDate(newEndDate, 66, "hour"); // 24(1 day)*3 - 6
       break;
     case ViewMode.HalfDay:
       newStartDate = startOfDate(newStartDate, "day");
+      newStartDate = addToDate(newStartDate, -1 * preStepsCount, "day");
       newEndDate = startOfDate(newEndDate, "day");
-      newStartDate = addToDate(newStartDate, -1, "day");
       newEndDate = addToDate(newEndDate, 108, "hour"); // 24(1 day)*5 - 12
+      break;
+    case ViewMode.Hour:
+      newStartDate = startOfDate(newStartDate, "hour");
+      newStartDate = addToDate(newStartDate, -1 * preStepsCount, "hour");
+      newEndDate = startOfDate(newEndDate, "day");
+      newEndDate = addToDate(newEndDate, 1, "day");
       break;
   }
   return [newStartDate, newEndDate];
@@ -125,6 +142,9 @@ export const seedDates = (
   const dates: Date[] = [currentDate];
   while (currentDate < endDate) {
     switch (viewMode) {
+      case ViewMode.Year:
+        currentDate = addToDate(currentDate, 1, "year");
+        break;
       case ViewMode.Month:
         currentDate = addToDate(currentDate, 1, "month");
         break;
@@ -140,6 +160,9 @@ export const seedDates = (
       case ViewMode.QuarterDay:
         currentDate = addToDate(currentDate, 6, "hour");
         break;
+      case ViewMode.Hour:
+        currentDate = addToDate(currentDate, 1, "hour");
+        break;
     }
     dates.push(currentDate);
   }
@@ -149,6 +172,21 @@ export const seedDates = (
 export const getLocaleMonth = (date: Date, locale: string) => {
   let bottomValue = getCachedDateTimeFormat(locale, {
     month: "long",
+  }).format(date);
+  bottomValue = bottomValue.replace(
+    bottomValue[0],
+    bottomValue[0].toLocaleUpperCase()
+  );
+  return bottomValue;
+};
+
+export const getLocalDayOfWeek = (
+  date: Date,
+  locale: string,
+  format?: "long" | "short" | "narrow" | undefined
+) => {
+  let bottomValue = getCachedDateTimeFormat(locale, {
+    weekday: format,
   }).format(date);
   bottomValue = bottomValue.replace(
     bottomValue[0],
