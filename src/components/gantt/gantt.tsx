@@ -68,6 +68,7 @@ export const Gantt: React.FunctionComponent<GanttProps> = ({
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const taskListRef = useRef<HTMLDivElement>(null);
+  const previousViewModeRef = useRef(viewMode);
   const [dateSetup, setDateSetup] = useState<DateSetup>(() => {
     const [startDate, endDate] = ganttDateRange(tasks, viewMode, preStepsCount);
     return { viewMode, dates: seedDates(startDate, endDate, viewMode) };
@@ -114,6 +115,10 @@ export const Gantt: React.FunctionComponent<GanttProps> = ({
       }
     }
     setDateSetup({ dates: newDates, viewMode });
+    if (previousViewModeRef.current !== viewMode) {
+      setScrollX(-1);
+    }
+    previousViewModeRef.current = viewMode;
     setBarTasks(
       convertToBarTasks(
         filteredTasks,
