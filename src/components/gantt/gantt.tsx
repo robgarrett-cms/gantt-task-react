@@ -190,6 +190,29 @@ export const Gantt: React.FunctionComponent<GanttProps> = ({
   ]);
 
   useEffect(() => {
+    if (scrollX === -1 && !viewDate && dateSetup.dates.length) {
+      const today = new Date();
+      const dates = dateSetup.dates;
+      let index = dates.findIndex(
+        (d, i) =>
+          today.valueOf() >= d.valueOf() &&
+          i + 1 !== dates.length &&
+          today.valueOf() < dates[i + 1].valueOf()
+      );
+      if (index === -1) {
+        if (today.valueOf() < dates[0].valueOf()) {
+          index = 0;
+        } else if (today.valueOf() >= dates[dates.length - 1].valueOf()) {
+          index = dates.length - 1;
+        }
+      }
+      if (index !== -1) {
+        setScrollX(columnWidth * index);
+      }
+    }
+  }, [dateSetup.dates, scrollX, columnWidth, viewDate]);
+
+  useEffect(() => {
     const { changedTask, action } = ganttEvent;
     if (changedTask) {
       if (action === "delete") {
