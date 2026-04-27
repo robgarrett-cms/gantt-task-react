@@ -82,6 +82,9 @@ export const ganttDateRange = (
       newEndDate = task.end;
     }
   }
+  if (newEndDate < new Date()) {
+    newEndDate = new Date();
+  }
   switch (viewMode) {
     case ViewMode.Year:
       newStartDate = addToDate(newStartDate, -1, "year");
@@ -92,8 +95,8 @@ export const ganttDateRange = (
     case ViewMode.Month:
       newStartDate = addToDate(newStartDate, -1, "month");
       newStartDate = startOfDate(newStartDate, "month");
-      newEndDate = addToDate(newEndDate, 1, "year");
-      newEndDate = startOfDate(newEndDate, "year");
+      newEndDate = addToDate(newEndDate, 1, "month");
+      newEndDate = startOfDate(newEndDate, "month");
       break;
     case ViewMode.Week:
       newStartDate = startOfDate(newStartDate, "day");
@@ -103,13 +106,13 @@ export const ganttDateRange = (
         "day"
       );
       newEndDate = startOfDate(newEndDate, "day");
-      newEndDate = addToDate(newEndDate, 1.5, "month");
+      newEndDate = addToDate(newEndDate, 7 * preStepsCount, "day");
       break;
     case ViewMode.Day:
       newStartDate = startOfDate(newStartDate, "day");
       newStartDate = addToDate(newStartDate, -1 * preStepsCount, "day");
       newEndDate = startOfDate(newEndDate, "day");
-      newEndDate = addToDate(newEndDate, 19, "day");
+      newEndDate = addToDate(newEndDate, 1 * preStepsCount, "day");
       break;
     case ViewMode.QuarterDay:
       newStartDate = startOfDate(newStartDate, "day");
