@@ -31,6 +31,7 @@ export interface Task {
   hideChildren?: boolean;
   displayOrder?: number;
   uid?: string;
+  status?: string;
 }
 
 export interface EventOption {
